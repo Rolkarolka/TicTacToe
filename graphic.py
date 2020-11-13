@@ -1,6 +1,6 @@
 import pygame as pg
 from copy import deepcopy
-from random import choice
+from numpy import random
 class Node:
     # min player - o, max player - x
     def __init__(self, board, player):
@@ -8,16 +8,18 @@ class Node:
         self.config_matrix = [[3, 2, 3], [2, 4, 2], [3, 2, 3]]
         self.heuristic = self.calc_heuristic()
         self.children = []
-        self.player = player
+        self.player = int(player)
         self.terminal = False
+        if self.winning(int(not self.player)) is not None:
+            self.terminal = True
 
     def calc_heuristic(self):
         result = 0
         for x in range(len(self.current_board)):
             for y in range(len(self.current_board[x])):
-                if self.current_board[x][y] == 1:
-                    result -= self.config_matrix[x][y]
                 if self.current_board[x][y] == 0:
+                    result -= self.config_matrix[x][y]
+                if self.current_board[x][y] == 1:
                     result += self.config_matrix[x][y]
         return result
 
@@ -28,24 +30,24 @@ class Node:
                     board = deepcopy(self.current_board)
                     board[x][y] = int(self.player)
                     self.children.append(Node(board, not self.player))
-        if self.children == [] or self.winning() is not None:
+        if self.children == []:
             self.terminal = True
 
-    def winning(self):
+    def winning(self, player):
         # form a horizontal line
         for x_row in self.current_board:
-            if all([x is self.player for x in x_row]):
-                return self.player
+            if all([x is player for x in x_row]):
+                return player
         # form a vertical line
         for i in range(len(self.current_board[0])):
-            if all([x[i] is self.player for x in self.current_board]):
-                return self.player
+            if all([x[i] is player for x in self.current_board]):
+                return player
         # form a diagonal line from the upper-left to the lower-right corner
-        if all([self.current_board[i][i] is self.player for i in range(len(self.current_board))]):
-            return self.player
+        if all([self.current_board[i][i] is player for i in range(len(self.current_board))]):
+            return player
         # form a diagonal line from the lower-left to the upper-right corner
-        if all([self.current_board[i][2 - i] is self.player for i in range(2, -1, -1)]):
-            return self.player
+        if all([self.current_board[i][2 - i] is player for i in range(2, -1, -1)]):
+            return player
         # if draw
         if all([all([x[i] is not None for i in range(len(self.current_board))]) for x in self.current_board]):
             return -1
@@ -207,12 +209,16 @@ class TicTacToe:
                         result = self.update_board(pos)
                 elif self.whoiswho[self.player] == 'AI':
                     node = Node(deepcopy(self.board), self.player)
-                    minimax(node, 1, True)
+                    minimax(node, 4, True)
                     children = []
+                    terminal = []
                     if self.player == 0:
                         current_heurisitic = float("inf")
                         for child in node.children:
+                            if child.terminal is True:
+                                terminal.append(child)
                             if child.heuristic < current_heurisitic:
+                                current_heurisitic = child.heuristic
                                 children.clear()
                                 children.append(child)
                             if child.heuristic == current_heurisitic:
@@ -220,12 +226,18 @@ class TicTacToe:
                     if self.player == 1:
                         current_heurisitic = float("-inf")
                         for child in node.children:
+                            if child.terminal is True:
+                                terminal.append(child)
                             if child.heuristic > current_heurisitic:
+                                current_heurisitic = child.heuristic
                                 children.clear()
                                 children.append(child)
-                            if child.heuristic == current_heurisitic:
-                                children.append(child)   
-                    child = choice(children)
+                            elif child.heuristic == current_heurisitic:
+                                children.append(child)
+                    if len(terminal) > 0:
+                        child = random.choice(terminal)
+                    else:
+                        child = random.choice(children)
                     self.board = child.current_board
                     self.draw_movements()
                     pg.display.update()
