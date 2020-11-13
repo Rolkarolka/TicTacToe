@@ -2,7 +2,7 @@ import pygame as pg
 from copy import deepcopy
 from random import choice
 class Node:
-    # max player - o, min player - x
+    # min player - o, max player - x
     def __init__(self, board, player):
         self.current_board = board
         self.config_matrix = [[3, 2, 3], [2, 4, 2], [3, 2, 3]]
@@ -15,9 +15,9 @@ class Node:
         result = 0
         for x in range(len(self.current_board)):
             for y in range(len(self.current_board[x])):
-                if self.current_board[x][y] == 0:
-                    result -= self.config_matrix[x][y]
                 if self.current_board[x][y] == 1:
+                    result -= self.config_matrix[x][y]
+                if self.current_board[x][y] == 0:
                     result += self.config_matrix[x][y]
         return result
 
@@ -61,14 +61,16 @@ def minimax(node, depth, maximizingPlayer):
         for child in node.children:
             value = minimax(child, depth - 1, False)
             max_value = max(max_value, value)
-            return max_value
+        return max_value
     else:
         min_value = float('inf')
         for child in node.children:
             value = minimax(child, depth - 1, True)
             min_value = min(min_value, value)
-            return min_value
+        return min_value
 
+# ---------------------------------------------------------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------------------------------------------------------
 class TicTacToe:
     def __init__(self):
         pg.init()
@@ -203,10 +205,27 @@ class TicTacToe:
                     if event.type == pg.MOUSEBUTTONUP:
                         pos = pg.mouse.get_pos()
                         result = self.update_board(pos)
-                else:
+                elif self.whoiswho[self.player] == 'AI':
                     node = Node(deepcopy(self.board), self.player)
-                    max_heuristic = minimax(node, 1, True)
-                    child = choice([child for child in node.children if max_heuristic == child.heuristic])
+                    minimax(node, 1, True)
+                    children = []
+                    if self.player == 0:
+                        current_heurisitic = float("inf")
+                        for child in node.children:
+                            if child.heuristic < current_heurisitic:
+                                children.clear()
+                                children.append(child)
+                            if child.heuristic == current_heurisitic:
+                                children.append(child)
+                    if self.player == 1:
+                        current_heurisitic = float("-inf")
+                        for child in node.children:
+                            if child.heuristic > current_heurisitic:
+                                children.clear()
+                                children.append(child)
+                            if child.heuristic == current_heurisitic:
+                                children.append(child)   
+                    child = choice(children)
                     self.board = child.current_board
                     self.draw_movements()
                     pg.display.update()
