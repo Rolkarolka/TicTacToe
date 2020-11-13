@@ -73,7 +73,7 @@ def minimax(node, depth, maximizingPlayer):
 
 # ---------------------------------------------------------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------------------------------------------------------
-class TicTacToe:
+class Graphic:
     def __init__(self):
         pg.init()
         pg.display.set_caption("TicTacToe")
@@ -86,6 +86,7 @@ class TicTacToe:
         self.fields_start = [[(0, i), (self.WIDTH // 3, i), (self.WIDTH // 3 * 2, i)] for i in [0, self.HEIGHT // 3, self.HEIGHT // 3 * 2]]
         self.player = 1     # x = 1,  o = 0
         self.run = True
+        self.result = None
         self.whoiswho = {}
         self.margin = int(self.WIDTH // 3 * 0.1)
         self.begin_screen()
@@ -124,54 +125,37 @@ class TicTacToe:
         else:
             return 2
 
-    def draw_horizontal_winning_line(self, x_row):
-        y = self.fields_start[self.board.index(x_row)][0][1] + self.HEIGHT // 6
-        self.draw_movements()
-        pg.draw.line(self.screen, (255, 0, 0), (0, y), (self.WIDTH, y), 5)
-
-    def draw_vertical_winning_line(self, i):
-        x = self.fields_start[0][i][0] + self.WIDTH // 6
-        self.draw_movements()
-        pg.draw.line(self.screen, (255, 0, 0), (x, 0), (x, self.HEIGHT), 5)
-
-    def check_winning(self):
+    def check_conditions(self):
         self.draw_movements()
         # form a horizontal line
         for x_row in self.board:
             if all([x is self.player for x in x_row]):
-                self.draw_horizontal_winning_line(x_row)
-                return self.player
+                y = self.fields_start[self.board.index(x_row)][0][1] + self.HEIGHT // 6
+                self.result = self.player
+                return [(0, y), (self.WIDTH, y)]
         # form a vertical line
         for i in range(len(self.board[0])):
             if all([x[i] is self.player for x in self.board]):
-                self.draw_vertical_winning_line(i)
-                return self.player
+                x = self.fields_start[0][i][0] + self.WIDTH // 6
+                self.result = self.player
+                return [(x, 0), (x, self.HEIGHT)]
         # form a diagonal line from the upper-left to the lower-right corner
         if all([self.board[i][i] is self.player for i in range(len(self.board))]):
-            pg.draw.line(self.screen, (255, 0, 0), (0, 0), (self.WIDTH, self.HEIGHT), 10)
-            return self.player
+            self.result = self.player
+            return [(0, 0), (self.WIDTH, self.HEIGHT)]
         # form a diagonal line from the lower-left to the upper-right corner
         if all([self.board[i][2 - i] is self.player for i in range(2, -1, -1)]):
-            pg.draw.line(self.screen, (255, 0, 0), (0, self.HEIGHT), (self.WIDTH, 0), 10)
-            return self.player
+            self.result = self.player
+            return [(0, self.HEIGHT), (self.WIDTH, 0)]
         # if draw
         if all([all([x[i] is not None for i in range(len(self.board))]) for x in self.board]):
-            return -1
-        return None
+            self.result = 'Tie'
+        return []
 
-    def end_game(self, result):
+    def end_game(self):
         pg.time.delay(1000)
         pg.quit()
 
-    def update_board(self, pos):
-        y = self.find_fild(pos[1])
-        x = self.find_fild(pos[0])
-        if self.board[y][x] is None:
-            self.board[y][x] = self.player
-            result = self.check_winning()
-            self.player = int(not self.player)
-        return result
-    
     def display_string(self, string, pos):
         font = pg.font.SysFont('dejavuserif', 32)
         text = font.render(string, True, (255, 255, 255))
@@ -196,60 +180,67 @@ class TicTacToe:
                     self.run = False
         pg.quit()
 
+    def choose_next_AI_step(self, current_heurisitic, function, node):
+        children = []
+        terminal = []
+        for child in node.children:
+            if child.terminal is True:
+                terminal.append(child)
+            if function(child.heuristic, current_heurisitic):
+                current_heurisitic = child.heuristic
+                children.clear()
+                children.append(child)
+            elif child.heuristic == current_heurisitic:
+                children.append(child)
+        if len(terminal) > 0:
+            child = random.choice(terminal)
+        else:
+            child = random.choice(children)
+        return child
+
+    def update_board(self, pos):
+            y = self.find_fild(pos[1])
+            x = self.find_fild(pos[0])
+            if self.board[y][x] is None:
+                self.board[y][x] = self.player
+                coords = self.check_conditions()
+                self.player = int(not self.player)
+            return coords
+
     def game(self):
         self.screen.fill((16, 16, 16))
-        result = None
+        self.draw_board()
+        pg.display.update()
         while self.run:
-            self.draw_board()
-            pg.display.update()
             for event in pg.event.get():
-                if self.whoiswho[self.player] == 'H':
-                    if event.type == pg.MOUSEBUTTONUP:
-                        pos = pg.mouse.get_pos()
-                        result = self.update_board(pos)
+
+                if self.whoiswho[self.player] == 'H' and event.type == pg.MOUSEBUTTONUP:
+                    pos = pg.mouse.get_pos()
+                    coords = self.update_board(pos)
+
                 elif self.whoiswho[self.player] == 'AI':
-                    node = Node(deepcopy(self.board), self.player)
+                    node = Node(self.board, self.player)
                     minimax(node, 4, True)
-                    children = []
-                    terminal = []
                     if self.player == 0:
-                        current_heurisitic = float("inf")
-                        for child in node.children:
-                            if child.terminal is True:
-                                terminal.append(child)
-                            if child.heuristic < current_heurisitic:
-                                current_heurisitic = child.heuristic
-                                children.clear()
-                                children.append(child)
-                            if child.heuristic == current_heurisitic:
-                                children.append(child)
-                    if self.player == 1:
-                        current_heurisitic = float("-inf")
-                        for child in node.children:
-                            if child.terminal is True:
-                                terminal.append(child)
-                            if child.heuristic > current_heurisitic:
-                                current_heurisitic = child.heuristic
-                                children.clear()
-                                children.append(child)
-                            elif child.heuristic == current_heurisitic:
-                                children.append(child)
-                    if len(terminal) > 0:
-                        child = random.choice(terminal)
-                    else:
-                        child = random.choice(children)
+                        child = self.choose_next_AI_step(float("inf"), lambda x, y: x < y, node)
+                    elif self.player == 1:
+                        child = self.choose_next_AI_step(float("-inf"), lambda x, y: x > y, node)
                     self.board = child.current_board
-                    self.draw_movements()
-                    pg.display.update()
-                    result = self.check_winning()
+                    coords = self.check_conditions()
                     self.player = int(not self.player)
-                if result is not None:
+
+                if self.result is not None:
+                    if coords != []:
+                        pg.draw.line(self.screen, (255, 0, 0), coords[0], coords[1], 10)
                     pg.display.update()
-                    self.end_game(result)
+                    self.end_game()
+
                 if event.type == pg.QUIT:
                     self.run = False
+                self.draw_movements()
+                pg.display.update()
         pg.quit()
 
-tic = TicTacToe()
+tic = Graphic()
 
 
