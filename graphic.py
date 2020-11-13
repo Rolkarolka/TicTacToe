@@ -1,5 +1,6 @@
 import pygame as pg
 from copy import deepcopy
+from random import choice
 class Node:
     # max player - o, min player - x
     def __init__(self, board, player):
@@ -69,7 +70,7 @@ def minimax(node, depth, maximizingPlayer):
             return min_value
 
 class TicTacToe:
-    def __init__(self, first_x=True,):
+    def __init__(self):
         pg.init()
         pg.display.set_caption("TicTacToe")
         self.WIDTH = 600
@@ -79,13 +80,10 @@ class TicTacToe:
         self.board_lines_colour = (240, 240, 240)
         self.board = [[None for i in range(3)] for i in range(3)]
         self.fields_start = [[(0, i), (self.WIDTH // 3, i), (self.WIDTH // 3 * 2, i)] for i in [0, self.HEIGHT // 3, self.HEIGHT // 3 * 2]]
-        if first_x:
-            self.player = 1     # x = 1
-        else:
-            self.player = 0     # o = 0
+        self.player = 1     # x = 1,  o = 0
         self.run = True
+        self.whoiswho = {}
         self.margin = int(self.WIDTH // 3 * 0.1)
-        self.firstAI = True
         self.begin_screen()
         self.game()
 
@@ -167,10 +165,8 @@ class TicTacToe:
         if self.board[y][x] is None:
             self.board[y][x] = self.player
             result = self.check_winning()
-            if result is not None:
-                pg.display.update()
-                self.end_game(result)
             self.player = int(not self.player)
+        return result
     
     def display_string(self, string, pos):
         font = pg.font.SysFont('dejavuserif', 32)
@@ -187,36 +183,38 @@ class TicTacToe:
             for event in pg.event.get():
                 if event.type == pg.MOUSEBUTTONUP:
                     pos = pg.mouse.get_pos()
-                    if pos[0] > self.WIDTH // 2:
-                        self.firstAI = False
+                    if pos[0] < self.WIDTH // 2:
+                        self.whoiswho = {1: 'H', 0: 'AI'}
                     else:
-                        self.firstAI = True
+                        self.whoiswho = {1: 'AI', 0: 'H'}
                     return
                 if event.type == pg.QUIT:
                     self.run = False
         pg.quit()
 
-
     def game(self):
         self.screen.fill((16, 16, 16))
+        result = None
         while self.run:
             self.draw_board()
             pg.display.update()
             for event in pg.event.get():
-                if event.type == pg.MOUSEBUTTONUP:
-                    pos = pg.mouse.get_pos()
-                    self.update_board(pos)
-
-                    # if self.AI:
-                    #     node = Node(deepcopy(self.board), self.player)
-                    #     max_heuristic = minimax(node, 1, True)
-                    #     # max_heuristic = 
-                    #     for child in node.children: # @TODO losowo wybierany wezel jesli o tej samej wartosci
-                    #         if max_heuristic == child.heuristic: 
-                    #             self.board = child.current_board
-                    #     self.player = int(not self.player) 
-                    #     self.draw_movements()
-                    #     pg.display.update()
+                if self.whoiswho[self.player] == 'H':
+                    if event.type == pg.MOUSEBUTTONUP:
+                        pos = pg.mouse.get_pos()
+                        result = self.update_board(pos)
+                else:
+                    node = Node(deepcopy(self.board), self.player)
+                    max_heuristic = minimax(node, 1, True)
+                    child = choice([child for child in node.children if max_heuristic == child.heuristic])
+                    self.board = child.current_board
+                    self.draw_movements()
+                    pg.display.update()
+                    result = self.check_winning()
+                    self.player = int(not self.player)
+                if result is not None:
+                    pg.display.update()
+                    self.end_game(result)
                 if event.type == pg.QUIT:
                     self.run = False
         pg.quit()
