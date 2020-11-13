@@ -1,7 +1,75 @@
 import pygame as pg
+from copy import deepcopy
+class Node:
+    # max player - o, min player - x
+    def __init__(self, board, player):
+        self.current_board = board
+        self.config_matrix = [[3, 2, 3], [2, 4, 2], [3, 2, 3]]
+        self.heuristic = self.calc_heuristic()
+        self.children = []
+        self.player = player
+        self.terminal = False
+
+    def calc_heuristic(self):
+        result = 0
+        for x in range(len(self.current_board)):
+            for y in range(len(self.current_board[x])):
+                if self.current_board[x][y] == 0:
+                    result -= self.config_matrix[x][y]
+                if self.current_board[x][y] == 1:
+                    result += self.config_matrix[x][y]
+        return result
+
+    def set_children(self):
+        for x in range(len(self.current_board)):
+            for y in range(len(self.current_board[x])):
+                if self.current_board[x][y] is None:
+                    board = deepcopy(self.current_board)
+                    board[x][y] = int(self.player)
+                    self.children.append(Node(board, not self.player))
+        if self.children == [] or self.winning() is not None:
+            self.terminal = True
+
+    def winning(self):
+        # form a horizontal line
+        for x_row in self.current_board:
+            if all([x is self.player for x in x_row]):
+                return self.player
+        # form a vertical line
+        for i in range(len(self.current_board[0])):
+            if all([x[i] is self.player for x in self.current_board]):
+                return self.player
+        # form a diagonal line from the upper-left to the lower-right corner
+        if all([self.current_board[i][i] is self.player for i in range(len(self.current_board))]):
+            return self.player
+        # form a diagonal line from the lower-left to the upper-right corner
+        if all([self.current_board[i][2 - i] is self.player for i in range(2, -1, -1)]):
+            return self.player
+        # if draw
+        if all([all([x[i] is not None for i in range(len(self.current_board))]) for x in self.current_board]):
+            return -1
+        return None
+
+def minimax(node, depth, maximizingPlayer):
+    node.set_children()
+    if depth == 0 or node.terminal:
+        return node.heuristic
+
+    if maximizingPlayer:
+        max_value = float('-inf')
+        for child in node.children:
+            value = minimax(child, depth - 1, False)
+            max_value = max(max_value, value)
+            return max_value
+    else:
+        min_value = float('inf')
+        for child in node.children:
+            value = minimax(child, depth - 1, True)
+            min_value = min(min_value, value)
+            return min_value
 
 class TicTacToe:
-    def __init__(self, first_x=True):
+    def __init__(self, first_x=True,):
         pg.init()
         pg.display.set_caption("TicTacToe")
         self.WIDTH = 600
@@ -12,11 +80,13 @@ class TicTacToe:
         self.board = [[None for i in range(3)] for i in range(3)]
         self.fields_start = [[(0, i), (self.WIDTH // 3, i), (self.WIDTH // 3 * 2, i)] for i in [0, self.HEIGHT // 3, self.HEIGHT // 3 * 2]]
         if first_x:
-            self.player = 1
+            self.player = 1     # x = 1
         else:
-            self.player = 0
+            self.player = 0     # o = 0
         self.run = True
         self.margin = int(self.WIDTH // 3 * 0.1)
+        self.firstAI = True
+        self.begin_screen()
         self.game()
 
     def draw_x(self, x, y):
@@ -101,8 +171,34 @@ class TicTacToe:
                 pg.display.update()
                 self.end_game(result)
             self.player = int(not self.player)
+    
+    def display_string(self, string, pos):
+        font = pg.font.SysFont('dejavuserif', 32)
+        text = font.render(string, True, (255, 255, 255))
+        self.screen.blit(text, pos)
+    
+    def begin_screen(self):
+        self.display_string("Do you want to start first?", (self.WIDTH // 4 + 20, self.HEIGHT // 8))
+        self.display_string("Yes", (self.WIDTH // 4, self.HEIGHT // 2))
+        self.display_string("No", (self.WIDTH // 4 * 3, self.HEIGHT // 2))
+        pg.draw.line(self.screen, self.board_lines_colour, (self.WIDTH // 2, self.HEIGHT // 4), (self.WIDTH // 2, self.HEIGHT), 5)
+        pg.display.update()
+        while self.run:
+            for event in pg.event.get():
+                if event.type == pg.MOUSEBUTTONUP:
+                    pos = pg.mouse.get_pos()
+                    if pos[0] > self.WIDTH // 2:
+                        self.firstAI = False
+                    else:
+                        self.firstAI = True
+                    return
+                if event.type == pg.QUIT:
+                    self.run = False
+        pg.quit()
+
 
     def game(self):
+        self.screen.fill((16, 16, 16))
         while self.run:
             self.draw_board()
             pg.display.update()
@@ -110,8 +206,21 @@ class TicTacToe:
                 if event.type == pg.MOUSEBUTTONUP:
                     pos = pg.mouse.get_pos()
                     self.update_board(pos)
+
+                    # if self.AI:
+                    #     node = Node(deepcopy(self.board), self.player)
+                    #     max_heuristic = minimax(node, 1, True)
+                    #     # max_heuristic = 
+                    #     for child in node.children: # @TODO losowo wybierany wezel jesli o tej samej wartosci
+                    #         if max_heuristic == child.heuristic: 
+                    #             self.board = child.current_board
+                    #     self.player = int(not self.player) 
+                    #     self.draw_movements()
+                    #     pg.display.update()
                 if event.type == pg.QUIT:
                     self.run = False
         pg.quit()
 
 tic = TicTacToe()
+
+
