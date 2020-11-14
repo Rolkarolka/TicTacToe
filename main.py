@@ -35,7 +35,7 @@ class TicTacToe(Graphic):
                     self.run = False
         pg.quit()
 
-    def find_fild(self, coord):
+    def find_fild(self, coord):     # find index in Graphic.fields_start based on mouse position
         if coord < self.WIDTH // 3:
             return 0
         elif coord < self.WIDTH // 3 * 2:
@@ -43,7 +43,7 @@ class TicTacToe(Graphic):
         else:
             return 2
 
-    def update_board(self, pos):
+    def update_board(self, pos):    # update board after player movement
         y = self.find_fild(pos[1])
         x = self.find_fild(pos[0])
         coords = None
@@ -55,7 +55,6 @@ class TicTacToe(Graphic):
         return coords
 
     def check_conditions(self, player, board):
-        self.draw_movements()
         # form a horizontal line
         for x_row in board:
             if all([x is player for x in x_row]):
@@ -77,7 +76,7 @@ class TicTacToe(Graphic):
             return [], 'Tie'
         return [], None
 
-    def choose_next_AI_step(self, current_heurisitic, function, node):
+    def choose_next_AI_step(self, current_heurisitic, function, node):  # choose best movement for AI
         children = []
         terminal = []
         for child in node.children:

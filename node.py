@@ -14,7 +14,7 @@ class Node:
         if result is not None:
             self.terminal = True
 
-    def calc_heuristic(self):
+    def calc_heuristic(self):   # calculate heuristic based on current board
         result = 0
         for x in range(len(self.current_board)):
             for y in range(len(self.current_board[x])):
@@ -24,7 +24,7 @@ class Node:
                     result += self.config_matrix[x][y]
         return result
 
-    def set_children(self):
+    def set_children(self):     # set children for current node
         for x in range(len(self.current_board)):
             for y in range(len(self.current_board[x])):
                 if self.current_board[x][y] is None:
@@ -35,7 +35,7 @@ class Node:
             self.terminal = True
 
 
-def minimax(node, depth, maximizingPlayer):
+def minimax(node, depth, maximizingPlayer):     # create game tree
     node.set_children()
     if depth == 0 or node.terminal:
         return node.heuristic
