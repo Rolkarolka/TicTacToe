@@ -10,6 +10,7 @@ class Node:
         self.player = int(player)
         self.terminal = False
         self.function = function
+        self.set_children()
         coords, result = function(int(not self.player), self.current_board) 
         if result is not None:
             self.terminal = True
@@ -36,7 +37,7 @@ class Node:
 
 
 def minimax(node, depth, maximizingPlayer):     # create game tree
-    node.set_children()
+    # node.set_children()
     if depth == 0 or node.terminal:
         return node.heuristic
 
@@ -45,10 +46,12 @@ def minimax(node, depth, maximizingPlayer):     # create game tree
         for child in node.children:
             value = minimax(child, depth - 1, False)
             max_value = max(max_value, value)
+        node.heuristic = max_value
         return max_value
     else:
         min_value = float('inf')
         for child in node.children:
             value = minimax(child, depth - 1, True)
             min_value = min(min_value, value)
+        node.heuristic = min_value
         return min_value
