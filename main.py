@@ -129,7 +129,9 @@ class TicTacToe(Graphic):
         pg.quit()
     
     def end_game(self):
-        pg.time.delay(1000)
+        self.draw_movements()
+        pg.display.update()
+        pg.time.delay(3000)
         pg.quit()
 
 tic = TicTacToe()
