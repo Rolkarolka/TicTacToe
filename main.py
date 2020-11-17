@@ -80,7 +80,7 @@ class TicTacToe(Graphic):
         children = []
         terminal = []
         for child in node.children:
-            if child.terminal is True:
+            if child.win is True:
                 terminal.append(child)
             if child.heuristic == optimal_move:
                 children.append(child)
