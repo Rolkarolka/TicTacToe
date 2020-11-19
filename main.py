@@ -76,17 +76,13 @@ class TicTacToe(Graphic):
             return [], 'Tie'
         return [], None
 
-    def choose_next_AI_step(self, current_heurisitic, function, node):  # choose best movement for AI
+    def choose_next_AI_step(self, optimal_move, node):  # choose best movement for AI
         children = []
         terminal = []
         for child in node.children:
-            if child.terminal is True:
+            if child.win is True:
                 terminal.append(child)
-            if function(child.heuristic, current_heurisitic):
-                current_heurisitic = child.heuristic
-                children.clear()
-                children.append(child)
-            elif child.heuristic == current_heurisitic:
+            if child.heuristic == optimal_move:
                 children.append(child)
         if len(terminal) > 0:
             child = random.choice(terminal)
@@ -106,11 +102,8 @@ class TicTacToe(Graphic):
 
                 elif self.whoiswho[self.player] == 'AI':
                     node = Node(self.board, self.player, self.check_conditions)
-                    minimax(node, 4, True)
-                    if self.player == 0:
-                        child = self.choose_next_AI_step(float("inf"), lambda x, y: x < y, node)
-                    elif self.player == 1:
-                        child = self.choose_next_AI_step(float("-inf"), lambda x, y: x > y, node)
+                    next_move = minimax(node, 4, True)
+                    child = self.choose_next_AI_step(next_move, node)
                     self.board = child.current_board
                     coords, player = self.check_conditions(int(self.player), self.board)
                     self.result = player
